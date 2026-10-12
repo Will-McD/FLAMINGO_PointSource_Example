@@ -82,8 +82,8 @@ The model can be
 
 `compute_spectra` can also scale the spectrum, `target_flux=(1, "erg/s/cm**2")`, or scale it by
 `target_flux / norm_flux` (`norm_flux` as `(value, units)`). With `reuse_model=True`, repeated calls with the same
-model string and energy grid keep the xspec model and only set the parameters that changed, which is much faster when
-only, e.g., the column density changes.
+model string and energy grid keep the xspec model and only set the parameters that changed (faster than updating
+all parameters at once, e.g., the column density changes).
 
 ### Templates
 
