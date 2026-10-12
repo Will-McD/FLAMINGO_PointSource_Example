@@ -1,7 +1,6 @@
 # AGN point sources: spectra and tables
 
-This markdown document covers computing X-ray spectra of AGN with PyXspec, and building and using the two tables that give
-lightcone AGN their X-ray emission: the column density (nH) distribution and the broadband flux table.
+This markdown document covers computing X-ray spectra of AGN with PyXspec, and the use of both column density (nH) distribution and the broadband flux tables.
 
 | File | What it does |
 |---|---|
@@ -10,7 +9,7 @@ lightcone AGN their X-ray emission: the column density (nH) distribution and the
 | `flamingo_point_sources/telescope_utils.py` | preset telescopes and the FLAMINGO X-ray bands |
 | `ARF/` | ARF files, e.g. the eROSITA survey ARF |
 
-Sampling luminosities and making maps are described in [AbundanceMatching](AbundanceMatching.md).
+For sampling luminosities and making maps see [AbundanceMatching](AbundanceMatching.md).
 
 ## Requirements
 
@@ -27,9 +26,10 @@ cosmo = configure_xspec("/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUC
                         abund="aspl", xsect="vern")
 ```
 
-`configure_xspec` sets the xspec cosmology from the snapshot, the abundance table (default Asplund+09) and the
-photoionisation cross sections (default Verner+96). Call it before computing spectra, otherwise the xspec defaults
-are used. It returns the snapshot cosmology.
+`configure_xspec` sets the xspec cosmology from the snapshot, the abundance table and the
+photoionisation cross sections. 
+This must be called before computing spectra, otherwise the xspec defaults are used. 
+It returns the snapshot cosmology.
 
 ## Telescopes and bands
 
@@ -81,13 +81,12 @@ The model can be
 3. a pyxspec model.
 
 `compute_spectra` can also scale the spectrum, `target_flux=(1, "erg/s/cm**2")`, or scale it by
-`target_flux / norm_flux` (`norm_flux` as `(value, units)`). With `reuse_model=True`, repeated calls with the same
-model string and energy grid keep the xspec model and only set the parameters that changed (faster than updating
-all parameters at once, e.g., the column density changes).
+`target_flux / norm_flux` (`norm_flux` as `(value, units)`). 
+When `reuse_model=True`, repeated calls with the same model string and energy grid keep the xspec model and only set the parameters that changed (faster than updating all parameters at once, e.g., the column density changes).
 
 ### Templates
 
-All take `(redshift, nH_factor, ...)` and return `(xspec model string, parameters)`:
+All templates (hard coded spectra models) take `(redshift, nH_factor, ...)` and return `(xspec model string, parameters)`:
 
 | Template | Model |
 |---|---|
@@ -96,13 +95,12 @@ All take `(redshift, nH_factor, ...)` and return `(xspec model string, parameter
 | `SoftExcess_AGN_template` | as `AGN_template` plus a soft excess (`zbremss`) |
 
 Other options: `spec_index` (photon index, 1.85), `MW_nH_factor` (Galactic nH, 0.018 x 10^22 cm^-2), `rel_refl`,
-`cos_inc`, `fold_energy`, `ratio_abund`, `Fe_abund`, `norm_fact`. The reflection and absorbers are at the source's
-redshift.
+`cos_inc`, `fold_energy`, `ratio_abund`, `Fe_abund`, `norm_fact`. 
+The reflection and absorbers are at the AGN's (i.e. the emitters) redshift.
 
 ## Column densities: the nH table
 
-AGN column densities are drawn from the Ueda et al. (2014) distribution, which depends on redshift and the hard
-(2-10 keV) X-ray luminosity.
+AGN column densities are drawn from the Ueda et al. (2014) distribution, which depends on redshift and the hard (2-10 keV) X-ray luminosity.
 
 ```python
 from flamingo_point_sources.agn_spectra import PointSourceTables
@@ -211,9 +209,10 @@ count_rate = Fx_observed_band * fBB
 
 The nearest column density bin is used, and the redshift is interpolated (`interpolate=True`) or given by the nearest
 bin. Redshifts outside the table's bin centres give NaN (`out_of_range="nan"`) or the value at the nearest centre
-(`"clamp"`). `FluxTable` reads the table once and evaluates any number of particles in one numba pass; call it on
-chunks to limit memory, or pass `dtype=np.float32` / `out=`. `normalised_broadband_flux_from_table` is a one-off
-version that loads the table on each call.
+(`"clamp"`). 
+
+`FluxTable` reads the table once and evaluates any number of particles in one pass. This can be called in chunks to limit the peak memory requirements/
+`normalised_broadband_flux_from_table` is a one-off version that loads the table on each call (reduce overhead memory cost).
 
 
 ### Bolometric correction
