@@ -25,7 +25,7 @@ The corresponding parameter files:
 | `QLF_models/Shen2020_local_polished.dat` | 0.2 - 7.0 (34 rows) | `z, gamma1, gamma2, log_phi_star, log_L_star` (+ errors) |
 | `QLF_models/Shen2020_local_free.dat` | 0.2 - 6.4 (31 rows) | `z, gamma1, gamma2, phi_s, L_s` (+ errors) |
 
-`log_phi_star` is in Mpc^-3 dex^-1 and `log_L_star` in Lsun. `phi_s` and `L_s` are renamed to `log_phi_star` and
+`log_phi_star` [Mpc^-3 dex^-1] and `log_L_star` in Lsun. `phi_s` and `L_s` are renamed to `log_phi_star` and
 `log_L_star` when read (`QLF_COLUMN_ALIASES`), and rows starting with `#` are skipped.
 
 
@@ -48,7 +48,7 @@ phi = qlf.qlf_values([1e44, 1e45, 1e46] * unyt.erg / unyt.s)   # Mpc^-3 dex^-1
 L_bol, n_sampled = qlf.sample_LF_Lbol(1.03, 100000, 1e9 * unyt.Mpc**3)
 ```
 
-`sample_LF_Lbol` selects the QLF and returns `(luminosities, number sampled)`. The luminosities are a `unyt_array` in erg/s, ordered from brightest to faintest. There are fewer sampled luminosities than black holes if the given lower limit is met before each black hole is sampled, i.e. if the volume does not hold `n_BHs` quasars brighter than `log_Lbol_min_value`.
+`sample_LF_Lbol` selects the QLF and returns `(luminosities, number sampled)`. The luminosities [erg/s] are ordered from brightest to faintest. There are fewer sampled luminosities than black holes if the given lower limit is met before each black hole is sampled, i.e. if the volume does not hold `n_BHs` quasars brighter than `log_Lbol_min_value`.
 
 ### How the sampling works
 
@@ -94,9 +94,9 @@ with the coefficients in `SHEN2020_COEFFS`, as given by
 ([quasarlf](https://bitbucket.org/ShenXuejian/quasarlf)). 
 
 
-## Making AGN maps: `abundance_matched_map.py`
+## Making AGN point source maps: `abundance_matched_map.py`
 
-For a QLF at a given redshift (one row of the QLF file), the script
+For a QLF at a given redshift (one row of the QLF file), the script:
 
 1. finds the redshift range of that row, the midpoint between the neighbouring QLF redshifts;
 2. reads the haloes of the halo lightcone and corresponding SOAP catlaogues in that range, and assigns each halo to its lightcone shell;
@@ -149,13 +149,13 @@ it) or was normalised with a given `f_norm_flux` (`NormPhotonIndex = -1`).
 
 ### Output
 
-One file per shell, with two maps, e.g. for the ROSAT band:
+One file per redshift shell for the ROSAT band:
 
 | Dataset | Units |
 |---|---|
-| `XrayROSATEnergyFluxAGN` | erg/s/cm^2, observed 0.5-2 keV energy flux |
-| `XrayROSATConvolvedPhotonsAGN` | photons/s (`photons_convolved`) |
-| `XrayROSATIntrinsicPhotonsAGN` | photons/s/cm^2 (`photons_intrinsic`) |
+| `XrayROSATEnergyFluxAGN` | [erg/s/cm^2], observed 0.5-2 keV energy flux |
+| `XrayROSATConvolvedPhotonsAGN` | [photons/s] (`photons_convolved`) |
+| `XrayROSATIntrinsicPhotonsAGN` | [photons/s/cm^2] (`photons_intrinsic`) |
 
 If a shell's file exists already, the new values are added to its maps, so the QLF rows can be run one after another
 into the same directories to build up the full maps.
