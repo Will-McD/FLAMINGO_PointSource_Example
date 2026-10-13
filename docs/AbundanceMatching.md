@@ -8,6 +8,7 @@ This markdown document covers sampling quasar bolometric luminosities from the S
 | `flamingo_point_sources/sample_qlf.py` | `SampleQLF`: the QLF, and sampling luminosities from it; `Shen_2020_bolometric_correation` |
 | `QLF_models/` | the Shen+2020 QLF parameter files |
 | `flamingo_point_sources/abundance_matched_map.py` | the abundance matching and map making script |
+| `flamingo_point_sources/plot_abundance_matched_qlf.py` | plots the QLF of the abundance matched black holes against the model |
 
 The spectra and tables used to turn luminosities into X-ray fluxes are described in [PointSources](PointSources.md).
 
@@ -93,6 +94,51 @@ definition of the midplane redshift for every shell, since it chooses both the Q
 
 with the coefficients in `SHEN2020_COEFFS`, as given by 
 ([quasarlf](https://bitbucket.org/ShenXuejian/quasarlf)). 
+
+
+## Checking the abundance matched QLF: `plot_abundance_matched_qlf.py`
+
+For one QLF row, the script reads the haloes, samples and assigns the luminosities with the same functions and seed
+as `abundance_matched_map.py`, and bins the assigned luminosities into a QLF,
+
+    phi(L) = N(L) / (V dlogL)        [Mpc^-3 dex^-1]
+
+with V the comoving volume the luminosities were sampled for. It plots phi with Poisson errors against the Shen+2020
+model at the row's redshift, with their ratio below; the ratio uses the model averaged over each bin, as the QLF is
+curved across a bin. It needs matplotlib, and HEASoft like the map script, as it imports it.
+
+```bash
+python -m flamingo_point_sources.plot_abundance_matched_qlf \
+    --box_res L1000N1800 --sim_name HYDRO_FIDUCIAL \
+    --qlf_shell_nr 4 --qlf_filename QLF_models/Shen2020_local_polished.dat \
+    --sigma_Y -1 --output plots/abundance_matched_qlf_row4.png --per_shell
+```
+
+| Argument | Required | Meaning |
+|---|---|---|
+| `--box_res`, `--sim_name`, `--lightcone_nr` | as in `abundance_matched_map.py` | simulation and lightcone |
+| `--qlf_shell_nr`, `--qlf_filename`, `--Log_Lmin` | as in `abundance_matched_map.py` | QLF row and sampling |
+| `--sigma_Y` | no (-1) | one scatter value [dex]; < 0 ranks by accretion rate |
+| `--output` | yes | figure (.png); the binned QLF and the model are written next to it as `.txt` |
+| `--dlogL` | no (0.25) | width of the plotted log10 luminosity bins |
+| `--per_shell` | no | also plot the QLF of each lightcone shell in the row's range, to `<output>_shells.png` |
+| `--quiet` | no | only print the files written |
+
+What to expect:
+
+- The QLF of the whole range does not depend on `sigma_Y`: the ranking only decides which halo gets which luminosity,
+  and every ranking assigns the same sample. The per-shell QLFs do depend on it, since the ranking decides which
+  shells' haloes get the bright luminosities, so `--per_shell` shows whether the ranking keeps the QLF's redshift
+  dependence across the range.
+- The plotted bins start at the faintest assigned luminosity, as the sampler stops a little above `Log_Lmin` (its
+  last 0.1 dex bin is not drawn) and the bin it stops in is only partly filled.
+- If there are fewer haloes than quasars brighter than `Log_Lmin` in the volume, every halo gets a luminosity and the
+  faint end is cut where the haloes run out. This is marked on the plot ("ran out of haloes"); above it the QLF should
+  follow the model.
+- At the bright end the bins hold few quasars, so the ratio scatters with the Poisson errors shown.
+
+See `examples/plot_abundance_matched_qlf.sh` for an example job plotting a few QLF rows.
+
 
 
 ## Making AGN point source maps: `abundance_matched_map.py`
