@@ -35,6 +35,8 @@ BOLOMETRIC_CORRECTION_BANDS = {"rosat": "soft"}
 # number of particles placed on the maps at a time
 CHUNK_SIZE = 65536
 
+# chunk size of a SOAP dataset read at a time
+SOAP_BLOCK_SIZE = 2**22
 
 def report(message, quiet=False, **print_kwargs):
     """
@@ -77,6 +79,37 @@ def assign_lightcone_shell(particle_z, shell_box):
     """
     shell_edges = np.loadtxt(flamingo_shell_redshift_file(shell_box), delimiter=",")
     return np.digitize(particle_z, bins=shell_edges[:, -1], right=False)
+
+
+def read_soap_chunks(dset, rows, block_size=SOAP_BLOCK_SIZE):
+    """
+    Read the given rows of an HDF5 dataset in blocks of contiguous rows.
+
+    An h5py point selection, dset[rows], is slow for many rows: each row is a separate selection, and the chunks of a
+    compressed dataset can be decompressed again for each. Instead, each block of block_size rows holding any of
+    the rows is read as one slice, from its first to its last row needed, and the rows are picked from it in memory.
+    Each block needs at most block_size rows of memory.
+
+    Returns the rows as an np.ndarray, in the order of rows.
+
+    :param  dset:       dataset to read
+    :type   dset:       h5py.Dataset
+    :param  rows:       increasing, unique row indices
+    :type   rows:       np.ndarray
+    :param  block_size: number of rows in a block
+    :type   block_size: int
+    """
+    rows = np.asarray(rows, dtype=np.int64)
+    out = np.empty((len(rows),) + dset.shape[1:], dtype=dset.dtype)
+    if len(rows) == 0:
+        return out
+    # rows are increasing, so the rows of each block are contiguous in rows
+    _, starts = np.unique(rows // block_size, return_index=True)
+    ends = np.append(starts[1:], len(rows))
+    for i0, i1 in zip(starts, ends):
+        lo, hi = int(rows[i0]), int(rows[i1 - 1]) + 1
+        out[i0:i1] = dset[lo:hi][rows[i0:i1] - lo]
+    return out
 
 
 def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_range, shell_box, comm=None, quiet=False):
@@ -134,7 +167,7 @@ def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_
     n_haloes = len(particle_data['Lightcone/SnapshotNumber'])
 
     soap_properties = ('BoundSubhalo/MaximumCircularVelocity', 'BoundSubhalo/MostMassiveBlackHoleAccretionRate',
-                       'BoundSubhalo/MostMassiveBlackHoleID', 'InputHalos/HaloCatalogueIndex')
+                       'BoundSubhalo/MostMassiveBlackHoleID')
     for snap_nr in snapshot_numbers:
         in_snapshot = particle_data['Lightcone/SnapshotNumber'] == snap_nr
         if not np.any(in_snapshot):
@@ -148,11 +181,15 @@ def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_
         with h5py.File(soap_format.format(snap_nr=snap_nr), 'r') as infile:
             for prop_name in soap_properties:
                 dset = infile[prop_name]
+                
+                report(f"\tadding {prop_name} values ....", quiet)
+                
                 if prop_name not in particle_data:
                     dtype = np.float64 if prop_name == 'BoundSubhalo/MostMassiveBlackHoleAccretionRate' else dset.dtype
                     particle_data[prop_name] = np.zeros((n_haloes,)+dset.shape[1:], dtype=dtype)
 
-                values = dset[unique_soap_idx][soap_order]
+                #values = dset[unique_soap_idx][soap_order]
+                values = read_soap_chunks(dset, unique_soap_idx)[soap_order]
                 if prop_name == 'BoundSubhalo/MostMassiveBlackHoleAccretionRate':
                     # physical CGS in float64, the internal units times the conversion factor can lose precision in float32
                     values = values.astype(np.float64) * dset.attrs['Conversion factor to physical CGS (including cosmological corrections)']

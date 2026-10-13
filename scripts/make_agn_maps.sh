@@ -24,9 +24,11 @@ module purge
 module load gnu_comp/14.1.0 openmpi/5.0.3
 module load python/3.12.4
 
+export OMP_NUM_THREADS=30
+
+
 # python environment with lightcone_io, swiftlet and virgodc, and HEASoft for PyXspec
 export HEADAS=/cosma/local/HEASoft/heasoft-6.36/x86_64-pc-linux-gnu-libc2.34/ # cosma install of HEAsoft
-#source /cosma/apps/do012/dc-mcdo1/lightcone_env/bin/activate
 source /cosma/apps/do012/dc-mcdo1/swiftlet_env2/bin/activate
 
 source ${HEADAS}/headas-init.sh
