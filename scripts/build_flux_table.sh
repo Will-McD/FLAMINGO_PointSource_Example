@@ -29,13 +29,13 @@ module load python/3.12.4
 
 # python environment with lightcone_io, swiftlet and virgodc, and HEASoft for PyXspec
 export HEADAS=/cosma/local/HEASoft/heasoft-6.36/x86_64-pc-linux-gnu-libc2.34/ # cosma install of HEAsoft
-source /cosma/apps/do012/dc-mcdo1/lightcone_env/bin/activate
+source /cosma/apps/do012/dc-mcdo1/swiftlet_env2/bin/activate
 source ${HEADAS}/headas-init.sh
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cosma/local/gcc/14.1.0/lib64 # gcc on cosma 
 
 repo_dir=/cosma8/data/do012/dc-mcdo1/FLAMINGO_PointSource_Example
-snapshot=/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/snapshots/flamingo_0077/flamingo_0077.0.hdf5
+snapshot=/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/snapshots
 
 redshift_min=0
 redshift_max=1

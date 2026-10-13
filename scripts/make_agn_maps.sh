@@ -7,7 +7,7 @@
 #SBATCH -e ./logs/%x.%j.err
 #SBATCH -p cosma8
 #SBATCH -A dp004
-#SBATCH -t 72:00:00
+#SBATCH -t 03:00:00
 #
 # Make ROSAT AGN maps of the lightcone shells for redshifts 0 - 0.9 by abundance matching each Shen+2020 QLF redshift
 # (one row of the QLF parameter file) in turn. Each row adds its AGN to the shell maps, so the rows build up the full
@@ -89,3 +89,4 @@ for qlf_shell_nr in ${qlf_shells}; do
         --sigma_Y ${sigma_Y} \
 
 done
+
