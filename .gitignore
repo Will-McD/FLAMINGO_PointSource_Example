@@ -1,0 +1,21 @@
+# Build and packaging
+build/
+dist/
+*.egg-info/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# numba on-disk cache
+*.nbc
+*.nbi
+
+# Editor backups
+*~
+
+# Run logs and example outputs
+logs/
+example_outputs/
+data/
+plots/

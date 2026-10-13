@@ -35,6 +35,8 @@ BOLOMETRIC_CORRECTION_BANDS = {"rosat": "soft"}
 # number of particles placed on the maps at a time
 CHUNK_SIZE = 65536
 
+# chunk size of a SOAP dataset read at a time
+SOAP_BLOCK_SIZE = 2**22
 
 def report(message, quiet=False, **print_kwargs):
     """
@@ -77,6 +79,37 @@ def assign_lightcone_shell(particle_z, shell_box):
     """
     shell_edges = np.loadtxt(flamingo_shell_redshift_file(shell_box), delimiter=",")
     return np.digitize(particle_z, bins=shell_edges[:, -1], right=False)
+
+
+def read_soap_chunks(dset, rows, block_size=SOAP_BLOCK_SIZE):
+    """
+    Read the given rows of an HDF5 dataset in blocks of contiguous rows.
+
+    An h5py point selection, dset[rows], is slow for many rows: each row is a separate selection, and the chunks of a
+    compressed dataset can be decompressed again for each. Instead, each block of block_size rows holding any of
+    the rows is read as one slice, from its first to its last row needed, and the rows are picked from it in memory.
+    Each block needs at most block_size rows of memory.
+
+    Returns the rows as an np.ndarray, in the order of rows.
+
+    :param  dset:       dataset to read
+    :type   dset:       h5py.Dataset
+    :param  rows:       increasing, unique row indices
+    :type   rows:       np.ndarray
+    :param  block_size: number of rows in a block
+    :type   block_size: int
+    """
+    rows = np.asarray(rows, dtype=np.int64)
+    out = np.empty((len(rows),) + dset.shape[1:], dtype=dset.dtype)
+    if len(rows) == 0:
+        return out
+    # rows are increasing, so the rows of each block are contiguous in rows
+    _, starts = np.unique(rows // block_size, return_index=True)
+    ends = np.append(starts[1:], len(rows))
+    for i0, i1 in zip(starts, ends):
+        lo, hi = int(rows[i0]), int(rows[i1 - 1]) + 1
+        out[i0:i1] = dset[lo:hi][rows[i0:i1] - lo]
+    return out
 
 
 def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_range, shell_box, comm=None, quiet=False):
@@ -127,12 +160,14 @@ def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_
 
     particle_data = {}
     for prop_name in halo_properties:
-        particle_data[prop_name] = np.asarray(halo_data[prop_name][in_range])
+        report(f"\treading {prop_name} values for {np.sum(in_range)} haloes", quiet)
+
+        particle_data[prop_name] = np.asarray(halo_data[prop_name][in_range], dtype=halo_data[prop_name].dtype)
     particle_data["Lightcone/ShellNumber"] = shell_number[in_range]
     n_haloes = len(particle_data['Lightcone/SnapshotNumber'])
 
     soap_properties = ('BoundSubhalo/MaximumCircularVelocity', 'BoundSubhalo/MostMassiveBlackHoleAccretionRate',
-                       'BoundSubhalo/MostMassiveBlackHoleID', 'InputHalos/HaloCatalogueIndex')
+                       'BoundSubhalo/MostMassiveBlackHoleID')
     for snap_nr in snapshot_numbers:
         in_snapshot = particle_data['Lightcone/SnapshotNumber'] == snap_nr
         if not np.any(in_snapshot):
@@ -146,11 +181,15 @@ def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_
         with h5py.File(soap_format.format(snap_nr=snap_nr), 'r') as infile:
             for prop_name in soap_properties:
                 dset = infile[prop_name]
+                
+                report(f"\tadding {prop_name} values ....", quiet)
+                
                 if prop_name not in particle_data:
                     dtype = np.float64 if prop_name == 'BoundSubhalo/MostMassiveBlackHoleAccretionRate' else dset.dtype
                     particle_data[prop_name] = np.zeros((n_haloes,)+dset.shape[1:], dtype=dtype)
 
-                values = dset[unique_soap_idx][soap_order]
+                #values = dset[unique_soap_idx][soap_order]
+                values = read_soap_chunks(dset, unique_soap_idx)[soap_order]
                 if prop_name == 'BoundSubhalo/MostMassiveBlackHoleAccretionRate':
                     # physical CGS in float64, the internal units times the conversion factor can lose precision in float32
                     values = values.astype(np.float64) * dset.attrs['Conversion factor to physical CGS (including cosmological corrections)']
@@ -193,12 +232,15 @@ def get_particle_data_for_abundance_matching(args):
     report(f"Using Box: {args.box_res}\nSimulation: {args.sim_name}\n", args.quiet)
 
     simulation_dir = f"/cosma8/data/dp004/flamingo/Runs/{args.box_res}/{args.sim_name}"
-    if "L1000N1800" in args.box_res:
-        halo_lightcone_dir = f"{simulation_dir}/hbt_lightcone_halos/lightcone{args.lightcone_nr}"
-    elif ("L2800N5040" in args.box_res) or ("L1000N3600" in args.box_res):
-        halo_lightcone_dir = f"{simulation_dir}/sorted_hbt_lightcone_halos/lightcone{args.lightcone_nr}"
-    else:
-        raise ValueError(f"no halo lightcone directory known for box {args.box_res}")
+    halo_lightcone_dir = f"{simulation_dir}/sorted_hbt_lightcone_halos/lightcone{args.lightcone_nr}"
+    if os.path.exists(halo_lightcone_dir) is False:
+        # try back-up option
+        second_dir = f"{simulation_dir}/hbt_lightcone_halos/lightcone{args.lightcone_nr}"
+        use_second_dir = os.path.exists(second_dir)
+        if use_second_dir:
+            halo_lightcone_dir=second_dir
+        else:
+            raise ValueError(f"no halo lightcone directory known for ./{args.box_res}/{args.sim_name}")
 
     halo_format = halo_lightcone_dir+"/lightcone_halos_{file_nr:04d}.hdf5" # use file_nr for virgodc multifile 
     soap_format = f'{simulation_dir}/SOAP-HBT/halo_properties_'+'{snap_nr:04}'+'.hdf5'

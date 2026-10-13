@@ -11,7 +11,7 @@ import numpy as np
 import unyt
 from scipy import integrate
 from tqdm import tqdm
-from lightcone_io.units import apply_expected_units
+from swiftlet.snapshot_units import apply_expected_units
 
 
 # directory of the Shen2020 QLF parameter files, QLF_models/ at the top of the repository
