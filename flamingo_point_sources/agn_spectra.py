@@ -20,7 +20,7 @@ from numba import njit, prange
 from tqdm import tqdm
 import xspec
 
-from lightcone_io.units import apply_expected_units
+from swiftlet.snapshot_units import apply_expected_units
 from lightcone_io.xray_utils import Snapshot_Cosmology_For_Lightcone
 
 from .arf_utils import read_ARF
@@ -168,8 +168,8 @@ def _pexmon_params(redshift, spec_index, norm_fact, rel_refl, cos_inc, fold_ener
     :type   Fe_abund:       float
     """
     return {
-        "PhoIndex":spec_index, "Redshift":redshift, "norm":norm_fact,
-        "rel_refl":f"{rel_refl},,-2,-2,,", "cosIncl":cos_inc, "foldE":fold_energy,
+        "PhoIndex":spec_index, "redshift":redshift, "norm":norm_fact,
+        "rel_refl":f"{rel_refl},,-2,-2,,", "Incl":cos_inc, "foldE":fold_energy,
         "abund":ratio_abund, "Fe_abund":Fe_abund,
     }
 
@@ -1758,7 +1758,7 @@ class PointSourceTables:
         Build and write a table of the broadband photon flux of an AGN spectrum normalised to an intrinsic flux
         of 1 erg/s/cm^2, as a function of column density and redshift, for each X-ray band and observation type.
 
-        The file has the bins in 'Bins' ('z_edges', 'log_nH_edges' and their centres 'Redshift', 'log_nH'), the xspec
+        The file has the bins in 'Bins' ('z_edges', 'log_nH_edges' and their centres 'redshift', 'log_nH'), the xspec
         model and its parameters as the attributes of 'spectrum' (see _spectrum_attributes), and the flux of each band
         and observation type in '<band>/<observation type>/fBB', shape (column densities, redshifts).
 
@@ -1825,7 +1825,7 @@ class PointSourceTables:
             bin_data = outfile.create_group("Bins")
             bin_data.create_dataset("z_edges", data=redshift_edges)
             bin_data.create_dataset("log_nH_edges", data=log_nH_edges)
-            bin_data.create_dataset("Redshift", data=redshift_values)
+            bin_data.create_dataset("redshift", data=redshift_values)
             bin_data.create_dataset("log_nH", data=log_nH_values)
             bin_data.create_dataset("observation_bands", data=np.array(observation_bands, dtype=h5py.string_dtype()))
             bin_data.create_dataset("observation_types", data=np.array(observation_types, dtype=h5py.string_dtype()))
@@ -1918,7 +1918,7 @@ class PointSourceTables:
     def _read_table_bins(bins):
         """
         Redshift and log10 column density bin edges and centres of a broadband flux table. Tables with only
-        the bin centres ('Redshift', 'log_nH') are also read, the edges are then assumed to be regular.
+        the bin centres ('redshift', 'log_nH') are also read, the edges are then assumed to be regular.
 
         Returns a tuple of (redshift edges, redshift centres, log10 nH edges, log10 nH centres), each an np.ndarray.
 
@@ -1945,7 +1945,7 @@ class PointSourceTables:
                 width = mids[1]-mids[0] if len(mids)>1 else 2.
                 edges = np.append(mids-width/2, mids[-1]+width/2)
             return edges, mids
-        redshift_edges, redshift_mids = edges_and_mids("z_edges", "Redshift")
+        redshift_edges, redshift_mids = edges_and_mids("z_edges", "redshift")
         log_nH_edges, log_nH_mids = edges_and_mids("log_nH_edges", "log_nH")
         return redshift_edges, redshift_mids, log_nH_edges, log_nH_mids
 

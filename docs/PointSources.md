@@ -137,7 +137,7 @@ count rate of an AGN is then its observed-band energy flux times the table.
 
 From the command line, `python -m flamingo_point_sources.build_flux_table --snapshot <snapshot> --output <file>`
 builds a table with the basic template (options as below, `--help` for the list).
-`examples/build_flux_table.sh` is a job building the table for all three bands and both observation types for z = 0 - 6. 
+`scripts/build_flux_table.sh` is a job building the table for all three bands and both observation types for z = 0 - 6. 
 
 In Python:
 

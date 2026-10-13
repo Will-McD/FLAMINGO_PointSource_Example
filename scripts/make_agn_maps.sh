@@ -9,7 +9,7 @@
 #SBATCH -A dp004
 #SBATCH -t 72:00:00
 #
-# Make ROSAT AGN maps of the lightcone shells for redshifts 0 - 6, by abundance matching each Shen+2020 QLF redshift
+# Make ROSAT AGN maps of the lightcone shells for redshifts 0 - 0.9 by abundance matching each Shen+2020 QLF redshift
 # (one row of the QLF parameter file) in turn. Each row adds its AGN to the shell maps, so the rows build up the full
 # maps in the same output directories. See docs/AbundanceMatching.md.
 #
@@ -25,20 +25,29 @@ module load gnu_comp/14.1.0 openmpi/5.0.3
 module load python/3.12.4
 
 # python environment with lightcone_io, swiftlet and virgodc, and HEASoft for PyXspec
-source /cosma/apps/do012/dc-mcdo1/lightcone_env/bin/activate
+export HEADAS=/cosma/local/HEASoft/heasoft-6.36/x86_64-pc-linux-gnu-libc2.34/ # cosma install of HEAsoft
+#source /cosma/apps/do012/dc-mcdo1/lightcone_env/bin/activate
+source /cosma/apps/do012/dc-mcdo1/swiftlet_env2/bin/activate
+
 source ${HEADAS}/headas-init.sh
 
-repo_dir=/cosma8/data/do012/dc-mcdo1/Example_abundance_matching
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cosma/local/gcc/14.1.0/lib64 # gcc on cosma 
+
+repo_dir=/cosma8/data/do012/dc-mcdo1/FLAMINGO_PointSource_Example
 box_res=L1000N1800
 sim_name=HYDRO_FIDUCIAL
 lightcone_nr=0
-nside=4096
+nside=1024
 qlf_filename=${repo_dir}/QLF_models/Shen2020_local_polished.dat
-flux_table=${repo_dir}/AGN_tables/AGN_flux_table_basic_z0-6.hdf5
-rotations=/path/to/shell_rotations.hdf5            # 'shells/theta', 'shells/phi' [radians] for each shell
-output_base_dir=/cosma8/data/do012/dc-mcdo1/AGN_maps/${box_res}_${sim_name}_lightcone${lightcone_nr}/ROSAT
-sigma_Y="-1 0.3"                                    # < 0: rank by accretion rate, >= 0: by Vmax with this scatter [dex]
-z_max=6
+#flux_table=${repo_dir}/AGN_tables/AGN_flux_table_basic_z0-6.hdf5
+flux_table="/snap8/scratch/dp004/dc-mcdo1/AGN_Xray_Table/AGN_flux_table_basic_z0-1.hdf5"
+#rotations=/path/to/shell_rotations.hdf5            # 'shells/theta', 'shells/phi' [radians] for each shell
+rotations="/cosma8/data/do012/dc-mcdo1/ROZeSAT_paper/Xray_Convergence_Cls/L1000N1800_map_rotation.hdf5"
+xray_band=ROSAT
+output_base_dir=/snap8/scratch/dp004/dc-mcdo1/AGN_Xray_Table/example_maps/${box_res}/${sim_name}/lightcone${lightcone_nr}_${xray_band}
+mkdir -p ${output_base_dir}
+sigma_Y="-1 0.3"                                    # < 0: rank by accretion rate, >= 0: by max circular velcocity with this scatter [dex]
+z_max=0.4
 
 cd ${repo_dir}
 
@@ -60,7 +69,7 @@ for i, zi in enumerate(z):
 print(" ".join(str(i) for i in rows))
 EOF
 )
-echo "QLF rows to abundance match: ${qlf_shells}"
+echo "number of QLF models to abundance match with in redshift range: ${qlf_shells}"
 
 # the maps are added to, so start from empty output directories
 if ls -d ${output_base_dir}_*dex >/dev/null 2>&1; then
@@ -78,5 +87,5 @@ for qlf_shell_nr in ${qlf_shells}; do
         --output_base_dir ${output_base_dir} \
         --qlf_shell_nr ${qlf_shell_nr} --qlf_filename ${qlf_filename} \
         --sigma_Y ${sigma_Y} \
-        --quiet || exit 1
+
 done

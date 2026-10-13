@@ -127,7 +127,9 @@ def read_particle_data(halo_format, soap_format, snapshot_numbers, qlf_redshift_
 
     particle_data = {}
     for prop_name in halo_properties:
-        particle_data[prop_name] = np.asarray(halo_data[prop_name][in_range])
+        report(f"\treading {prop_name} values for {np.sum(in_range)} haloes", quiet)
+
+        particle_data[prop_name] = np.asarray(halo_data[prop_name][in_range], dtype=halo_data[prop_name].dtype)
     particle_data["Lightcone/ShellNumber"] = shell_number[in_range]
     n_haloes = len(particle_data['Lightcone/SnapshotNumber'])
 
@@ -193,12 +195,15 @@ def get_particle_data_for_abundance_matching(args):
     report(f"Using Box: {args.box_res}\nSimulation: {args.sim_name}\n", args.quiet)
 
     simulation_dir = f"/cosma8/data/dp004/flamingo/Runs/{args.box_res}/{args.sim_name}"
-    if "L1000N1800" in args.box_res:
-        halo_lightcone_dir = f"{simulation_dir}/hbt_lightcone_halos/lightcone{args.lightcone_nr}"
-    elif ("L2800N5040" in args.box_res) or ("L1000N3600" in args.box_res):
-        halo_lightcone_dir = f"{simulation_dir}/sorted_hbt_lightcone_halos/lightcone{args.lightcone_nr}"
-    else:
-        raise ValueError(f"no halo lightcone directory known for box {args.box_res}")
+    halo_lightcone_dir = f"{simulation_dir}/sorted_hbt_lightcone_halos/lightcone{args.lightcone_nr}"
+    if os.path.exists(halo_lightcone_dir) is False:
+        # try back-up option
+        second_dir = f"{simulation_dir}/hbt_lightcone_halos/lightcone{args.lightcone_nr}"
+        use_second_dir = os.path.exists(second_dir)
+        if use_second_dir:
+            halo_lightcone_dir=second_dir
+        else:
+            raise ValueError(f"no halo lightcone directory known for ./{args.box_res}/{args.sim_name}")
 
     halo_format = halo_lightcone_dir+"/lightcone_halos_{file_nr:04d}.hdf5" # use file_nr for virgodc multifile 
     soap_format = f'{simulation_dir}/SOAP-HBT/halo_properties_'+'{snap_nr:04}'+'.hdf5'

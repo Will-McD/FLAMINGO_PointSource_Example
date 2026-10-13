@@ -1,6 +1,7 @@
 # Example abundance matching
 
-This repository contains an except of code used to reproduce the FLAMINGO all-sky maps of AGN point-sources as presented in [McDonald et al (2026)](https://academic.oup.com/mnras/advance-article/doi/10.1093/mnras/stag1746/8796206?login=true). Note that this is specifically designed to run on COSMA and requires HEASoft. 
+This repository contains an except of code used to reproduce the FLAMINGO all-sky maps of AGN point-sources as presented in [McDonald et al (2026)](https://academic.oup.com/mnras/advance-article/doi/10.1093/mnras/stag1746/8796206?login=true). 
+Note that the examples in this repository are specifically designed to run on COSMA and requires both [`HEASoft`](https://heasarc.gsfc.nasa.gov/docs/software/lheasoft/) and a `LightconeIO` environment (see [install instructions](https://lightconeio.readthedocs.io/en/latest/installation.html)). 
 
 The resultant all-sky maps are available as part of the [FLAMINGO data release](https://dataweb.cosma.dur.ac.uk:8443/flamingo/index.html).
 
@@ -16,4 +17,10 @@ and added to HEALPix X-ray maps of the lightcone shells.
   `abundance_matched_map.py`
 - [PointSources](docs/PointSources.md): AGN spectra with PyXspec (`AGNSpectra`), the column density table, and
   building and reading the broadband flux tables (`PointSourceTables`, `FluxTable`)
+
+
+
+## AI use
+
+The documentation (`README.md`, [AbundanceMatching](docs/AbundanceMatching.md), [PointSources](docs/PointSources.md)) within this respository, including the formatting of doc-strings, was written with the assistance of AI  (Claude Code, Opus 5.5 , Anthropic 2026). All use of AI in writing documentaion was supervised, directed and vetted. 
 

@@ -61,6 +61,7 @@ L_bol, n_sampled = qlf.sample_LF_Lbol(1.03, 100000, 1e9 * unyt.Mpc**3)
    luminosities follow the QLF's shape within the bin rather than being uniform in log L.
 4. Sampling stops once `n_BHs + 1` luminosities are drawn (the last bin is cut) or `log_Lbol_min_value` is reached.
 
+
 ### Options
 
 | Argument | Default | Meaning |
@@ -109,6 +110,13 @@ For a QLF at a given redshift (one row of the QLF file), the script:
 6. add each AGNsX-ray energy flux and count rate to the corresponding HEALPix map for the lightcones redshift shell.
 
 
+
+### Important: SOAPIndex
+The original version of the abundance matching code was built prior to the `sorted_hbt_halo_lightcones` and therefore mapped the halo lightcones to soap via the halo track ID (`InputHalos/HBTplus/DescendantTrackId`) instead of the lightcones `InputHalos/SOAPIndex` values. 
+Therefore the errors with the miss-alignment of `InputHalos/SOAPIndex` did not affect published results. 
+The example shown in `abundance_matched_map` uses the now corrected `InputHalos/SOAPIndex` values. 
+
+
 ### Running it
 
 On one MPI rank, with HEASoft initialised, as the flux table code imports PyXspec:
@@ -142,7 +150,7 @@ python -m flamingo_point_sources.abundance_matched_map \
 | `--sigma_Y` | yes | one or more scatter values [dex], one set of maps each; < 0 ranks by accretion rate |
 | `--quiet` | no | only print one line for each map written |
 
-See `examples/make_agn_maps.sh` for an example job running every QLF row in z = 0 - 6 in turn into the same output
+See `scripts/make_agn_maps.sh` for an example job running every QLF row in z = 0 - 6 in turn into the same output
 directories.
 The run stops before reading any data if the band is not ROSAT, or the flux table has no `NormPhotonIndex` (rebuild
 it) or was normalised with a given `f_norm_flux` (`NormPhotonIndex = -1`).
