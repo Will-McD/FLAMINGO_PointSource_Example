@@ -317,8 +317,7 @@ def main(args):
     phi_model_in_bins = model_qlf_bin_averages(args.qlf_filename, qlf_redshift, log_L_edges)
 
     ranking = "accretion rate" if args.sigma_Y < 0 else f"Vmax, {args.sigma_Y} dex scatter"
-    title = (f"{args.box_res} {args.sim_name}, QLF z = {qlf_redshift:g} "
-             f"(haloes at z = {z_range[0]:.2f} - {z_range[1]:.2f}), ranked by {ranking}")
+    title = (f"{args.box_res} {args.sim_name},\nQLF z = {qlf_redshift:g} (z = {z_range[0]:.2f} - {z_range[1]:.2f}),\nranked by: {ranking}")
 
     output_dir = os.path.dirname(args.output)
     if output_dir:
@@ -368,7 +367,7 @@ if __name__ == "__main__":
 
     # plot
     argparser.add_argument("--output", type=str, required=True, help="output figure (.png); the binned QLF is written next to it as .txt")
-    argparser.add_argument("--dlogL", type=float, default=0.25, help="width of the log10 luminosity bins of the plotted QLF")
+    argparser.add_argument("--dlogL", type=float, default=0.1, help="width of the log10 luminosity bins of the plotted QLF")
     argparser.add_argument("--per_shell", action="store_true", help="also plot the QLF of each lightcone shell, to <output>_shells.png")
     argparser.add_argument("--quiet", action="store_true", help="only print the files written")
 
