@@ -96,19 +96,18 @@ with the coefficients in `SHEN2020_COEFFS`, as given by
 ([quasarlf](https://bitbucket.org/ShenXuejian/quasarlf)). 
 
 
-## Checking the abundance matched QLF: `plot_abundance_matched_qlf.py`
+## Checking the abundance matched QLF: `plot_qlf.py`
 
+Plot the sampled QLF model with `plot_qlf.py`. 
 For one QLF row, the script reads the haloes, samples and assigns the luminosities with the same functions and seed
 as `abundance_matched_map.py`, and bins the assigned luminosities into a QLF,
 
     phi(L) = N(L) / (V dlogL)        [Mpc^-3 dex^-1]
 
-with V the comoving volume the luminosities were sampled for. It plots phi with Poisson errors against the Shen+2020
-model at the row's redshift, with their ratio below; the ratio uses the model averaged over each bin, as the QLF is
-curved across a bin. It needs matplotlib, and HEASoft like the map script, as it imports it.
+with V the comoving volume the luminosities were sampled for. 
 
 ```bash
-python -m flamingo_point_sources.plot_abundance_matched_qlf \
+python -m flamingo_point_sources.plot_qlf \
     --box_res L1000N1800 --sim_name HYDRO_FIDUCIAL \
     --qlf_shell_nr 4 --qlf_filename QLF_models/Shen2020_local_polished.dat \
     --sigma_Y -1 --output plots/abundance_matched_qlf_row4.png --per_shell
@@ -137,7 +136,7 @@ What to expect:
   follow the model.
 - At the bright end the bins hold few quasars, so the ratio scatters with the Poisson errors shown.
 
-See `examples/plot_abundance_matched_qlf.sh` for an example job plotting a few QLF rows.
+See `scripts/plot_qlf.sh` for an example job plotting a few QLF rows.
 
 
 
