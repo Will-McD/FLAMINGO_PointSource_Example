@@ -1,16 +1,17 @@
 #!/bin/env python
 """
-Plot the quasar luminosity function (QLF) of the abundance matched black holes against the Shen+2020 model they were
-sampled from, as a check of the abundance matching in abundance_matched_map.py.
+Plot the quasar luminosity function (QLF) of the abundance matched black holes against the Shen+2020 best fitting QLF 
+model they were sampled from. 
 
-For one row of the QLF parameter file (one tabulated QLF redshift), the haloes in its redshift range are read, the
-bolometric luminosities are sampled and assigned to the haloes exactly as abundance_matched_map does (same functions,
-same seed), and the assigned luminosities are binned into a QLF:
+For a QLF model at a given redshift, sample the QLF to assign the haloes in the overlapping redshift range 
+new bolometric luminosities. The assigned luminosities are binned into a QLF:
 
     phi(L) = N(L) / (V dlogL)        [Mpc^-3 dex^-1]
 
 with V the comoving volume the luminosities were sampled for.
-The figure shows phi with Poisson errors and the Shen+2020 model at the QLF redshift, and their ratio below.
+
+The top panel of the output figure shows phi with Poisson errors and the best fitting QLF model from Shen+2020. 
+The bottom panel shows the ratio of the two curves, abundance matched / model
 With --per_shell a second figure shows the QLF of the haloes in each lightcone shell of the range, each with the volume of its shell.
 
 The luminosities assigned are a permutation of the same sample whatever the ranking (sigma_Y), so the QLF of the
@@ -29,20 +30,54 @@ import unyt
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.patheffects as path_effects
 
 from .sample_qlf import SampleQLF
 
 
-# chart colours (light surface)
-SURFACE = "#fcfcfb"
-INK_PRIMARY = "#0b0b0b"
-INK_SECONDARY = "#52514e"
-INK_MUTED = "#898781"
-GRIDLINE = "#e1e0d9"
-BASELINE = "#c3c2b7"
-SERIES_ABUNDANCE_MATCHED = "#2a78d6"
-# one-hue ordinal ramp for the lightcone shells, lightest (lowest redshift) to darkest
-SHELL_RAMP = ["#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"]
+# build plot settings
+
+def plot_settings():
+    """
+    matplotlib settings for this example. 
+    """
+    import matplotlib as mpl
+    
+    # Line Properties
+    plt.rcParams["lines.linewidth"]=1.5 
+    # Font options
+    plt.rcParams["font.size"]=8
+    plt.rcParams["font.family"] = "STIXGeneral"
+    plt.rcParams["mathtext.fontset"] = "stix"
+    plt.rcParams["text.usetex"] = False
+    plt.rcParams["legend.labelspacing"]=0.25
+    plt.rcParams["legend.columnspacing"]=0.75
+    plt.rcParams["legend.borderpad"]=0.3
+    plt.rcParams["legend.borderaxespad"]=0.7
+    plt.rcParams["legend.fontsize"]=10
+    # Figure layour settings
+    plt.rcParams["figure.constrained_layout.use"] =True
+    plt.rcParams["figure.constrained_layout.h_pad"] =0.005
+    plt.rcParams["figure.constrained_layout.w_pad"] =0.005
+    plt.rcParams["figure.constrained_layout.hspace"]=0.005
+    plt.rcParams["figure.constrained_layout.wspace"]=0.005
+    # axes font settings
+    mpl.rcParams['axes.labelsize']=10
+    mpl.rcParams['figure.labelsize']=10
+    mpl.rcParams['xtick.labelsize']=10
+    mpl.rcParams['ytick.labelsize']=10
+    # axes tick settings
+    plt.rcParams["xtick.direction"] ='in'
+    plt.rcParams["ytick.direction"] ='in'
+    plt.rcParams["xtick.top"]=True
+    plt.rcParams["ytick.right"]= True
+
+# define plotting colours
+model_colour = "k" #"#fe9c46"
+label_colour = "#52514e"
+abundance_matched_colour = "#4682B4"
+shell_cmap = LinearSegmentedColormap.from_list("magenta_cyan_gold", ["#8b008b", "#008c99", "#b8860b"])
 
 
 def luminosity_bin_edges(log_Lmin, log_L_faintest, log_Lmax, dlogL):
@@ -138,28 +173,11 @@ def model_qlf_bin_averages(qlf_filename, qlf_redshift, log_L_edges, points_per_b
     return model_qlf(qlf_filename, qlf_redshift, log_L.ravel()).reshape(log_L.shape).mean(axis=1)
 
 
-def _style_axes(ax):
-    """
-    Recessive chart chrome: hairline grid behind the data, muted ticks and labels, no top and right spines.
-
-    :param  ax: axes to style
-    :type   ax: matplotlib.axes.Axes
-    """
-    ax.set_facecolor(SURFACE)
-    ax.grid(True, color=GRIDLINE, linewidth=0.6)
-    ax.set_axisbelow(True)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    for side in ("left", "bottom"):
-        ax.spines[side].set_color(BASELINE)
-    ax.tick_params(colors=INK_MUTED, labelcolor=INK_SECONDARY, labelsize=9)
-    ax.xaxis.label.set_color(INK_SECONDARY)
-    ax.yaxis.label.set_color(INK_SECONDARY)
 
 
 def plot_qlf_comparison(binned, log_L_model, phi_model, phi_model_in_bins, title, log_L_halo_limit=None):
     """
-    Figure of the abundance matched QLF (points with Poisson errors) and the model QLF (line), with their ratio below.
+    Plot the abundance matched QLF (points with Poisson errors) and the best fit line QLF model (line)
 
     Returns the matplotlib.figure.Figure.
 
@@ -177,50 +195,48 @@ def plot_qlf_comparison(binned, log_L_model, phi_model, phi_model_in_bins, title
                                     reaching Log_Lmin (marked on the plot), else None
     :type   log_L_halo_limit:       float or None
     """
-    fig, (ax, ax_ratio) = plt.subplots(2, 1, sharex=True, figsize=(6.4, 6.0),
-                                       gridspec_kw={"height_ratios": (3, 1), "hspace": 0.06})
-    fig.patch.set_facecolor(SURFACE)
-    for a in (ax, ax_ratio):
-        _style_axes(a)
+    fig, (ax, ax_ratio) = plt.subplots(2, 1, sharex=True, figsize=(3.21, 3.01), gridspec_kw={"height_ratios": (3, 1), "hspace": 0.02}) #
 
     has = binned["counts"] > 0
     x = binned["log_L_centres"][has]
 
-    ax.plot(log_L_model, phi_model, color=INK_PRIMARY, linewidth=1.5, label="Shen+2020 model", zorder=2)
-    ax.errorbar(x, binned["phi"][has], yerr=binned["phi_err"][has], fmt="o", markersize=5,
-                color=SERIES_ABUNDANCE_MATCHED, ecolor=SERIES_ABUNDANCE_MATCHED, elinewidth=1.2,
-                markeredgecolor=SURFACE, markeredgewidth=1.0, label="abundance matched BHs", zorder=3)
+    ax.plot(log_L_model, phi_model, color=model_colour, linewidth=1.5, linestyle='--',label="Shen+2020 model", zorder=-20)
+    ax.errorbar(x, binned["phi"][has], yerr=binned["phi_err"][has], fmt=".", markersize=6,
+                color=abundance_matched_colour, ecolor=abundance_matched_colour, elinewidth=1.,
+                markeredgecolor="white", markeredgewidth=0.3, label="abundance matched BHs", zorder=-10)
     ax.set_yscale("log")
     ax.set_ylabel(r"$\phi(L_{\rm bol})$ [Mpc$^{-3}$ dex$^{-1}$]")
-    ax.set_title(title, color=INK_PRIMARY, fontsize=11, loc="left")
-    legend = ax.legend(frameon=False, fontsize=9, loc="upper right")
-    for text in legend.get_texts():
-        text.set_color(INK_SECONDARY)
+    ax.set_title(title, color="k", fontsize=9, loc="left")
+    legend = ax.legend(frameon=False, fontsize=8, loc="upper right", borderaxespad=0.3)
+
 
     with np.errstate(divide="ignore", invalid="ignore"):
         ratio = binned["phi"][has] / phi_model_in_bins[has]
         ratio_err = binned["phi_err"][has] / phi_model_in_bins[has]
-    ax_ratio.axhline(1., color=INK_PRIMARY, linewidth=1.0, zorder=2)
-    ax_ratio.errorbar(x, ratio, yerr=ratio_err, fmt="o", markersize=4, color=SERIES_ABUNDANCE_MATCHED,
-                      ecolor=SERIES_ABUNDANCE_MATCHED, elinewidth=1.0, markeredgecolor=SURFACE,
-                      markeredgewidth=0.8, zorder=3)
+    ax_ratio.axhline(1., color=model_colour, linewidth=1.0, zorder=-20)
+    ax_ratio.errorbar(x, ratio, yerr=ratio_err, fmt=".", markersize=6, color=abundance_matched_colour,
+                      ecolor=abundance_matched_colour, elinewidth=1.0, markeredgecolor="white",
+                      markeredgewidth=0.3, zorder=-10)
+    
+    dy=0.5
+    ax_ratio.set_yticks(np.arange(0., 2+dy, dy))
+    ax_ratio.set_yticks(np.arange(0., 2+dy/2, dy/2), minor=True)
     ax_ratio.set_ylim(0, 2)
-    ax_ratio.set_ylabel("ratio to model")
+    ax_ratio.set_ylabel("ratio")
     ax_ratio.set_xlabel(r"$\log_{10}\,L_{\rm bol}$ [erg s$^{-1}$]")
-
+    
+    fig.align_ylabels() # ensure subfig y-labels are aligned
+    
     if log_L_halo_limit is not None:
         for a in (ax, ax_ratio):
-            a.axvline(log_L_halo_limit, color=INK_MUTED, linewidth=1.0, linestyle=":", zorder=1)
-        ax.annotate("faintest assigned\n(ran out of haloes)", xy=(log_L_halo_limit, 0.03),
-                    xycoords=("data", "axes fraction"), xytext=(6, 0), textcoords="offset points",
-                    ha="left", va="bottom", fontsize=8, color=INK_SECONDARY, zorder=4,
-                    bbox={"boxstyle": "square,pad=0.2", "facecolor": SURFACE, "edgecolor": "none"})
+            a.axvline(log_L_halo_limit, color=model_colour, linewidth=1.0, linestyle=":", zorder=1)
+
     return fig
 
 
 def plot_per_shell_qlfs(shell_qlfs, log_L_model, phi_model, title):
     """
-    Figure of the abundance matched QLF of each lightcone shell (lines, light to dark with redshift) and the model.
+    Plot the abundance matched QLF of each lightcone shell (lines) and the model.
 
     Returns the matplotlib.figure.Figure.
 
@@ -233,26 +249,31 @@ def plot_per_shell_qlfs(shell_qlfs, log_L_model, phi_model, title):
     :param  title:          figure title
     :type   title:          str
     """
-    fig, ax = plt.subplots(figsize=(6.4, 4.8))
-    fig.patch.set_facecolor(SURFACE)
-    _style_axes(ax)
+    fig, ax = plt.subplots(figsize=(3.21, 2.41))
 
-    # spread the shells over the ramp, keeping the lightest step for the lowest redshift
-    ramp_idx = np.round(np.linspace(0, len(SHELL_RAMP) - 1, len(shell_qlfs))).astype(int) if len(shell_qlfs) > 1 else [4]
+
+    n_colours = 10
+    #shell_colours = [shell_cmap(10) for i in range(10)] # define shell colour map, never need more than 10 shells
+    # get index of shells in models and colours for plotting
+    ramp_idx = np.round(np.linspace(0, n_colours-1, len(shell_qlfs))).astype(int) if len(shell_qlfs) > 1 else [4]
     for (label, binned), idx in zip(shell_qlfs, ramp_idx):
         # empty bins break the line rather than being bridged
         phi = np.where(binned["counts"] > 0, binned["phi"], np.nan)
-        ax.plot(binned["log_L_centres"], phi, color=SHELL_RAMP[idx], linewidth=1.5,
-                marker="o", markersize=3, label=label, zorder=3)
-    ax.plot(log_L_model, phi_model, color=INK_PRIMARY, linewidth=1.5, linestyle="--", label="Shen+2020 model", zorder=2)
+        ax.plot(binned["log_L_centres"], phi, 
+                color=shell_cmap(idx/n_colours), linewidth=1.,
+                marker=".", markersize=3., label=label, zorder=-10, 
+                path_effects=[path_effects.withStroke(linewidth=1.5, foreground="white"), path_effects.Normal()])
+    ax.plot(log_L_model, phi_model, color=model_colour, linewidth=1.5, linestyle="--", label="Shen+2020 model", zorder=-20)
 
     ax.set_yscale("log")
     ax.set_xlabel(r"$\log_{10}\,L_{\rm bol}$ [erg s$^{-1}$]")
     ax.set_ylabel(r"$\phi(L_{\rm bol})$ [Mpc$^{-3}$ dex$^{-1}$]")
-    ax.set_title(title, color=INK_PRIMARY, fontsize=11, loc="left")
-    legend = ax.legend(frameon=False, fontsize=8, loc="lower left")
-    for text in legend.get_texts():
-        text.set_color(INK_SECONDARY)
+    ax.set_title(title, color="k", fontsize=9, loc="left")
+    
+    fig.align_ylabels() # ensure labels are aligned
+    
+    legend = ax.legend(frameon=False, fontsize=8, loc="lower left", borderaxespad=0.3,labelspacing=0.2)
+
     return fig
 
 
@@ -269,10 +290,8 @@ def write_table(path, binned, phi_model_in_bins, header):
     :param  header:                 header line(s)
     :type   header:                 str
     """
-    columns = np.column_stack((binned["log_L_centres"], binned["counts"], binned["phi"], binned["phi_err"],
-                               phi_model_in_bins))
-    np.savetxt(path, columns, fmt=("%.3f", "%d", "%.6e", "%.6e", "%.6e"),
-               header=header + "\nlog10_Lbol_centre[erg/s]  N  phi[Mpc^-3dex^-1]  phi_err  phi_model_bin_average")
+    columns = np.column_stack((binned["log_L_centres"], binned["counts"], binned["phi"], binned["phi_err"], phi_model_in_bins))
+    np.savetxt(path, columns, fmt=("%.3f", "%d", "%.6e", "%.6e", "%.6e"), header=header + "\nlog10_Lbol_centre[erg/s]  N  phi[Mpc^-3dex^-1]  phi_err  phi_model_bin_average")
 
 
 def main(args):
@@ -287,8 +306,13 @@ def main(args):
     from .abundance_matched_map import (get_particle_data_for_abundance_matching, sample_luminosities,
                                         assign_sampled_luminosities, report)
 
+
+    
     seed = 44 # same seed as abundance_matched_map, so the same luminosities go to the same haloes
     rng = np.random.default_rng(seed)
+
+    # define plot setting style
+    plot_settings()
 
     particle_data, z_range, qlf_redshift, cosmo, shell_box = get_particle_data_for_abundance_matching(args)
     n_haloes = len(particle_data["Lightcone/Redshift"])
@@ -316,8 +340,10 @@ def main(args):
     phi_model = model_qlf(args.qlf_filename, qlf_redshift, log_L_model)
     phi_model_in_bins = model_qlf_bin_averages(args.qlf_filename, qlf_redshift, log_L_edges)
 
-    ranking = "accretion rate" if args.sigma_Y < 0 else f"Vmax, {args.sigma_Y} dex scatter"
-    title = (f"{args.box_res} {args.sim_name},\nQLF z = {qlf_redshift:g} (z = {z_range[0]:.2f} - {z_range[1]:.2f}),\nranked by: {ranking}")
+    if  args.sigma_Y < 0:
+        title = (f"{args.box_res}/{args.sim_name}, QLF z = {qlf_redshift:g} ({z_range[0]:.2f}-{z_range[1]:.2f})")
+    else:
+        title = (f"{args.box_res}/{args.sim_name}, QLF z = {qlf_redshift:g} ({z_range[0]:.2f}-{z_range[1]:.2f})")
 
     output_dir = os.path.dirname(args.output)
     if output_dir:
@@ -325,7 +351,7 @@ def main(args):
     stem = os.path.splitext(args.output)[0]
 
     fig = plot_qlf_comparison(binned, log_L_model, phi_model, phi_model_in_bins, title, log_L_halo_limit)
-    fig.savefig(args.output, dpi=150, bbox_inches="tight", facecolor=SURFACE)
+    fig.savefig(args.output, dpi=300, bbox_inches="tight")
     plt.close(fig)
     write_table(stem + ".txt", binned, phi_model_in_bins,
                 header=f"{title}\nvolume {volume.to_value(unyt.Mpc**3):.6e} Mpc^3, {n_assigned} luminosities assigned")
@@ -345,7 +371,7 @@ def main(args):
             shell_qlfs.append((f"shell {shell_nr} (z = {z_lo:.2f} - {z_hi:.2f})",
                                binned_qlf(Lbol[in_shell], shell_volume, log_L_edges)))
         fig = plot_per_shell_qlfs(shell_qlfs, log_L_model, phi_model, title)
-        fig.savefig(stem + "_shells.png", dpi=150, bbox_inches="tight", facecolor=SURFACE)
+        fig.savefig(stem + "_shells.png", dpi=300, bbox_inches="tight")
         plt.close(fig)
         print(f"Wrote {stem}_shells.png", flush=True)
 
@@ -370,5 +396,5 @@ if __name__ == "__main__":
     argparser.add_argument("--dlogL", type=float, default=0.1, help="width of the log10 luminosity bins of the plotted QLF")
     argparser.add_argument("--per_shell", action="store_true", help="also plot the QLF of each lightcone shell, to <output>_shells.png")
     argparser.add_argument("--quiet", action="store_true", help="only print the files written")
-
+    
     main(argparser.parse_args())

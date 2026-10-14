@@ -38,7 +38,7 @@ repo_dir=/cosma8/data/do012/dc-mcdo1/FLAMINGO_PointSource_Example
 snapshot=/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/snapshots
 
 redshift_min=0
-redshift_max=1
+redshift_max=0.5
 output=/snap8/scratch/dp004/dc-mcdo1/AGN_Xray_Table/AGN_flux_table_basic_z${redshift_min}-${redshift_max}.hdf5
 
 cd ${repo_dir}

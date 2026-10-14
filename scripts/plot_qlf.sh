@@ -41,7 +41,7 @@ lightcone_nr=0
 qlf_filename=${repo_dir}/QLF_models/Shen2020_local_polished.dat
 plot_dir=${repo_dir}/plots/${box_res}_${sim_name}_lightcone${lightcone_nr}
 mkdir -p ${plot_dir}
-qlf_rows="0 4 8"         # rows of the QLF file, as numbered by --qlf_shell_nr
+qlf_rows="0 4 8"      #"0 4 8"   # rows of the QLF file, as numbered by --qlf_shell_nr
 sigma_Y=-1               # < 0: rank by accretion rate, >= 0: by Vmax with this scatter [dex]
 
 cd ${repo_dir}
