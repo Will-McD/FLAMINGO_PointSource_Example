@@ -22,5 +22,6 @@ and added to HEALPix X-ray maps of the lightcone shells.
 
 ## AI use
 
-The documentation (`README.md`, [AbundanceMatching](docs/AbundanceMatching.md), [PointSources](docs/PointSources.md)) within this respository, including the formatting of doc-strings, was written with the assistance of AI  (Claude Code, Opus 5.5 , Anthropic 2026). All use of AI in writing documentaion was supervised, directed and vetted. 
+Simple testing routines, code formatting, plotting scripts and the writing of documentation (`README.md`, [AbundanceMatching](docs/AbundanceMatching.md), [PointSources](docs/PointSources.md)) was done with the assistance of AI  (Claude Code, Opus 5.5 , Anthropic 2026). All use of AI was supervised, directed and vetted by the authors.
+
 
